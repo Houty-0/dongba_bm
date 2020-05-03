@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dongba.sys.dao.SysUserDao">
+
+    <sql id="queryWhereId">
+        from sys_users u left join sys_depts d
+        on u.deptId=d.id
+        <where>
+            <if test="username!=null and username!=''">
+                username like concat("%",#{username},"%")
+            </if>
+        </where>
+    </sql>
+
+    <resultMap id="sysUserDeptVo" type="com.dongba.sys.vo.SysUserDeptVo">
+        <id column="id" property="id"/>
+        <result column="username" property="username"/>
+        <result column="mobile" property="mobile"/>
+        <result column="email" property="email"/>
+        <result column="valid" property="valid"/>
+        <result column="createdTime" property="createdTime"/>
+        <result column="modifiedTime" property="modifiedTime"/>
+        <!-- one2one,many2one,嵌套查询 -->
+        <association property="sysDept" column="deptId">
+            <id column="deptId" property="id"/>
+            <result column="name" property="name"/>
+            <result column="note" property="note"/>
+        </association>
+    </resultMap>
+
+    <select id="getRowCount" resultType="int">
+        select count(*)
+        <include refid="queryWhereId"/>
+    </select>
+
+    <select id="findPageObjects" resultMap="sysUserDeptVo">
+        select u.id,u.username,u.password,u.salt,u.email,u.mobile,u.valid,u.deptId,u.createdTime,u.modifiedTime,d.name,d.note
+        <include refid="queryWhereId"/>
+        order by createdTime desc
+        limit #{startIndex},#{pageSize}
+    </select>
+
+    <select id="findUserByUserName" parameterType="String" resultType="Int">
+        select count(*) from sys_users where username = #{username}
+    </select>
+
+    <update id="validById">
+        update sys_users set valid=#{valid},modifiedUser=#{modifiedUser},modifiedTime=now()
+        where id=#{id}
+   </update>
+
+    <insert id="insertObject" parameterType="com.dongba.sys.entity.SysUser"
+            useGeneratedKeys="true" keyProperty="id">
+      insert into sys_users
+      (username,password,deptId,email,mobile,salt,valid,createdTime,modifiedTime,createdUser,modifiedUser)
+      values
+      (#{username},#{password},#{deptId},#{email},#{mobile},#{salt},#{valid},now(),now(),#{createdUser},#{modifiedUser})
+    </insert>
+
+    <select id="findObjectById" parameterType="int" resultMap="sysUserDeptVo">
+      select * from sys_users where id=#{id}
+    </select>
+
+    <update id="updateObject" parameterType="com.dongba.sys.entity.SysUser">
+        update sys_users
+        set username=#{username},mobile=#{mobile},email=#{email},deptId=#{deptId},modifiedTime=now(),modifiedUser=#{modifiedUser}
+        where id=#{id}
+    </update>
+</mapper>
+
+
+
+

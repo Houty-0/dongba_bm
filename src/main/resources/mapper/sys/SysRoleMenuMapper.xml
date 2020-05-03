@@ -8,4 +8,19 @@
     delete from sys_role_menus where menu_id=#{menuId}
   </delete>
 
+  <delete id="deleteObjectsByRoleId" parameterType="int">
+    delete from sys_role_menus where role_id=#{roleId}
+  </delete>
+
+  <insert id="insertObjects">
+    insert into sys_role_menus (role_id,menu_id)
+    values
+    <foreach collection="menuIds" separator="," item="item">
+      (#{roleId},#{item})
+    </foreach>
+  </insert>
+
+  <select id="findMenuIdsByRoleId" resultType="int">
+      select menu_id from sys_role_menus where role_id=#{id}
+  </select>
 </mapper>
