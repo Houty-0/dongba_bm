@@ -3,7 +3,7 @@
 This is a starter template page. Use this page to start your new project from
 scratch. This page gets rid of all links and provides the needed markup only.
 -->
-<html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -181,7 +181,7 @@ desired effect
               <!-- The user image in the navbar-->
               <img src="dist/img/user2-160x160.jpg" class="user-image" alt="User Image">
               <!-- hidden-xs hides the username on small devices so only the image appears. -->
-              <span class="hidden-xs" id="loginUserId">Alexander Pierce</span>
+              <span class="hidden-xs" id="loginUserId">[[${username}]]</span>
             </a>
             <ul class="dropdown-menu">
               <!-- The user image in the menu -->
@@ -264,20 +264,15 @@ desired effect
             <li><a id="load-attr-id">属性管理</a></li>
         </ul>
         </li> 
-        <li class="treeview">
+        <li class="treeview" th:each="um:${userMenus}">
           <a href="#"><i class="fa fa-link"></i> 
-          <span>系统管理</span>
+          <span>[[${um?.name}]]</span>
             <span class="pull-right-container">
                 <i class="fa fa-angle-left pull-right"></i>
               </span>
           </a>
           <ul class="treeview-menu">
-            <li><a id="load-dept-id">部门管理</a></li>
-            <li><a id="load-menu-id">菜单管理</a></li>
-            <li><a id="load-role-id">角色管理</a></li>
-            <li><a id="load-user-id">用户管理</a></li>
-            <li><a id="load-log-id"> 日志管理</a></li>
-            <li><a id="load-pwd-id"> 修改密码</a></li>
+            <li th:each="c:${um?.childs}"><a th:onclick="doLoadUI([[${c.url}]])" th:id="${c.id}">[[${c.name}]]</a></li>
           </ul>
         </li>
       </ul>
@@ -421,22 +416,24 @@ desired effect
 <script src="dist/js/adminlte.min.js"></script>
 <script type="text/javascript">
    //页面加载完成事件
-   $(function(){
+   /*$(function(){
 	   doLoadUI("load-log-id","log/log_list");
 	   doLoadUI("load-menu-id","menu/menu_list");
 	   doLoadUI("load-role-id","role/role_list");
 	   doLoadUI("load-dept-id","dept/dept_list");
 	   doLoadUI("load-user-id","user/user_list");
 	   doLoadUI("load-pwd-id","user/pwd_edit")
-   })
+   })*/
    //基于某个对象click事件,执行资源加载操作
-   function doLoadUI(id,url){
-	   $("#"+id).click(function(){
+   function doLoadUI(url){
+	   /*$("#"+id).click(function(){
 		   //mainContentId为呈现页面的一个位置
 		   //load函数为jquery中的一个ajax函数
 		   //load函数用于在某个位置异步加载某个资源
 		   $("#mainContentId").load(url);
-	   })
+	   })*/
+
+     $("#mainContentId").load(url);
    }
 </script>
 </body>

@@ -1,7 +1,9 @@
 package com.dongba.sys.service.impl;
 
+import com.dongba.common.annotation.RequiredLog;
 import com.dongba.common.config.PaginationProperties;
 import com.dongba.common.util.Assert;
+import com.dongba.common.util.ShiroUtil;
 import com.dongba.common.vo.CheckBox;
 import com.dongba.common.vo.PageObject;
 import com.dongba.sys.dao.SysRoleDao;
@@ -10,7 +12,10 @@ import com.dongba.sys.dao.SysUserRoleDao;
 import com.dongba.sys.entity.SysRole;
 import com.dongba.sys.service.SysRoleService;
 import com.dongba.sys.vo.SysRoleMenuVo;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +36,8 @@ public class SysRoleServiceImpl implements SysRoleService {
     @Autowired
     private PaginationProperties paginationProperties;
 
+    @RequiresPermissions("sys:role:view")
+    @Cacheable(value = "roleCache")
     @Override
     public PageObject<SysRole> findPageObjects(String name, Integer pageCurrent) {
         //1.参数校验
@@ -46,6 +53,9 @@ public class SysRoleServiceImpl implements SysRoleService {
         return new PageObject<>(pageCurrent,pageSize,rowCount,records);
 }
 
+    @RequiresPermissions("sys:role:delete")
+    @CacheEvict(value = "roleCache",allEntries = true)
+    @RequiredLog(operation = "删除角色")
     @Transactional
     @Override
     public int deleteObject(Integer id) {
@@ -61,6 +71,9 @@ public class SysRoleServiceImpl implements SysRoleService {
         return rows;
     }
 
+    @RequiresPermissions("sys:role:add")
+    @CacheEvict(value = "roleCache",allEntries = true)
+    @RequiredLog(operation = "新增角色")
     @Transactional
     @Override
     public int saveObject(SysRole entity, Integer[] menuIds) {
@@ -68,6 +81,7 @@ public class SysRoleServiceImpl implements SysRoleService {
         Assert.isArgumentValid(entity==null, "保存对象不能为空");
         Assert.isEmpty(entity.getName(), "角色名不能为空");
         //2.保存角色自身信息
+        entity.setCreatedUser(ShiroUtil.getUsername()).setModifiedUser(ShiroUtil.getUsername());
         int rows=sysRoleDao.insertObject(entity);
         //3.保存角色菜单关系数据
         sysRoleMenuDao.insertObjects(entity.getId(), menuIds);
@@ -85,6 +99,9 @@ public class SysRoleServiceImpl implements SysRoleService {
         return rm;
     }
 
+    @RequiresPermissions("sys:role:update")
+    @CacheEvict(value = "roleCache",allEntries = true)
+    @RequiredLog(operation = "更新角色")
     @Override
     public int updateObject(SysRole entity, Integer[] menuIds) {
         //1.参数校验

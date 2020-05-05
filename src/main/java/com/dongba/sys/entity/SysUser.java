@@ -1,11 +1,13 @@
 package com.dongba.sys.entity;
 
+import lombok.Data;
+import lombok.experimental.Accessors;
+
 import java.io.Serializable;
 import java.util.Date;
 
-import lombok.Data;
-
 @Data
+@Accessors(chain = true)
 public class SysUser implements Serializable{
 	private static final long serialVersionUID = -2084506667460906909L;
 	private Integer id;

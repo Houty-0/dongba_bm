@@ -27,6 +27,10 @@
          values
          (#{name},#{sort},#{note},#{parentId},now(),now(),#{createdUser},#{modifiedUser})
     </insert>
+
+    <select id="getUserCountByDeptId">
+        select count(*) from sys_users where deptId=#{deptId}
+    </select>
    
 </mapper>
 

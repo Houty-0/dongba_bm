@@ -28,5 +28,13 @@ public interface SysUserDao {
 
     public int updateObject(SysUser entity);
 
-    public int findUserByUserName(String username);
+    public SysUser findUserByUserName(String username);
+
+    public int getUserCountByDeptId(Integer id);
+
+    public int checkUserNameIsExist(String username);
+
+    public int deleteObjectById(SysUser sysUser);
+
+    public int updatePassword(SysUser sysUser);
 }

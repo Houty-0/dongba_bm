@@ -2,7 +2,9 @@ package com.dongba.sys.dao;
 
 import com.dongba.common.vo.Node;
 import com.dongba.sys.entity.SysMenu;
+import com.dongba.sys.vo.SysUserMenuVo;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -48,5 +50,9 @@ public interface SysMenuDao {
      * @return
      */
     int updateObject(SysMenu entity);
+
+    List<String> findPermissions(@Param("menuIds") Integer[] menuIds);
+
+    List<SysUserMenuVo> findUserMenus(Integer[] menuIds);
 
 }

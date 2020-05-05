@@ -5,8 +5,14 @@ import com.dongba.common.vo.PageObject;
 import com.dongba.sys.dao.SysLogDao;
 import com.dongba.sys.entity.SysLog;
 import com.dongba.sys.service.SysLogService;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -16,6 +22,8 @@ public class SysLogServiceImpl implements SysLogService {
     @Autowired
     private SysLogDao sysLogDao;
 
+    @RequiresPermissions("sys:log:view")
+    @Cacheable("logCache")
     @Override
     public PageObject<SysLog> findPageObjects(String username, Integer pageCurrent) {
 
@@ -51,6 +59,8 @@ public class SysLogServiceImpl implements SysLogService {
         return pageObject;
     }
 
+    @RequiresPermissions("sys:log:delete")
+    @CacheEvict(value = "logCache",allEntries = true)
     @Override
     public int deleteObjects(Integer... ids) {
         //1.判定参数合法性
@@ -72,6 +82,9 @@ public class SysLogServiceImpl implements SysLogService {
         return rows;
     }
 
+    @Async
+    @CacheEvict(value = "logCache",allEntries = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Override
     public void saveObject(SysLog entity) {
         sysLogDao.insertObject(entity);

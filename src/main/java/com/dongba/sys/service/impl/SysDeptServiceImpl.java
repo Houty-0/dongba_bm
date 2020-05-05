@@ -1,11 +1,17 @@
 package com.dongba.sys.service.impl;
 
+import com.dongba.common.annotation.RequiredLog;
 import com.dongba.common.exception.ServiceException;
+import com.dongba.common.util.ShiroUtil;
 import com.dongba.common.vo.Node;
 import com.dongba.sys.dao.SysDeptDao;
+import com.dongba.sys.dao.SysUserDao;
 import com.dongba.sys.entity.SysDept;
 import com.dongba.sys.service.SysDeptService;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -18,6 +24,11 @@ public class SysDeptServiceImpl implements SysDeptService {
 	@Autowired
 	private SysDeptDao sysDeptDao;
 
+	@Autowired
+	private SysUserDao sysUserDao;
+
+	@RequiresPermissions("sys:dept:view")
+	@Cacheable(value = "deptCache")
 	@Override
 	public List<Map<String, Object>> findObjects() {
 		List<Map<String, Object>> list=
@@ -27,6 +38,7 @@ public class SysDeptServiceImpl implements SysDeptService {
 		return list;
 	}
 
+	@Cacheable(value = "deptZTreeCache")
 	@Override
 	public List<Node> findZTreeNodes() {
 		List<Node> list=
@@ -36,6 +48,9 @@ public class SysDeptServiceImpl implements SysDeptService {
 		return list;
 	}
 
+	@RequiresPermissions("sys:dept:update")
+	@CacheEvict(value = {"deptCache","deptZTreeCache"},allEntries = true)
+	@RequiredLog(operation = "更新部门")
 	@Override
 	public int updateObject(SysDept entity) {
 		//1.合法验证
@@ -46,7 +61,8 @@ public class SysDeptServiceImpl implements SysDeptService {
 		int rows;
 		//2.更新数据
 		try{
-		rows=sysDeptDao.updateObject(entity);
+			entity.setModifiedUser(ShiroUtil.getUsername());
+			rows=sysDeptDao.updateObject(entity);
 		}catch(Exception e){
 		e.printStackTrace();
 		throw new ServiceException("更新失败");
@@ -54,7 +70,10 @@ public class SysDeptServiceImpl implements SysDeptService {
 		//3.返回数据
 		return rows;
 	}
-	
+
+	@RequiresPermissions("sys:dept:add")
+	@CacheEvict(value = {"deptCache","deptZTreeCache"},allEntries = true)
+	@RequiredLog(operation = "新增部门")
 	@Override
 	public int saveObject(SysDept entity) {
 		//1.合法验证
@@ -63,12 +82,17 @@ public class SysDeptServiceImpl implements SysDeptService {
 		if(StringUtils.isEmpty(entity.getName()))
 		throw new ServiceException("部门不能为空");
 		//2.保存数据
+		entity.setCreatedUser(ShiroUtil.getUsername()).setModifiedUser(ShiroUtil.getUsername());
 		int rows=sysDeptDao.insertObject(entity);
 		//if(rows==1)
 		//throw new ServiceException("save error");
 		//3.返回数据
 		return rows;
 	}
+
+	@RequiresPermissions("sys:dept:delete")
+	@CacheEvict(value = {"deptCache","deptZTreeCache"},allEntries = true)
+	@RequiredLog(operation = "删除部门")
 	@Override
 	public int deleteObject(Integer id) {
 		//1.合法性验证
@@ -80,9 +104,9 @@ public class SysDeptServiceImpl implements SysDeptService {
 		if(childCount>0)
 		throw new ServiceException("此元素有子元素，不允许删除");
 		//2.2判定此部门是否有用户
-		//int userCount=sysUserDao.getUserCountByDeptId(id);
-		//if(userCount>0)
-		//throw new ServiceException("此部门有员工，不允许对部门进行删除");
+		int userCount=sysUserDao.getUserCountByDeptId(id);
+		if(userCount>0)
+		throw new ServiceException("此部门有"+userCount+"位员工，不允许对部门进行删除");
 		//2.2判定此部门是否已经被用户使用,假如有则拒绝删除
 		//2.3执行删除操作
 		int rows=sysDeptDao.deleteObject(id);

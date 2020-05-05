@@ -1,10 +1,13 @@
 package com.dongba.sys.entity;
+
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.util.Date;
 
 @Data
+@Accessors(chain = true)
 public class SysMenu implements Serializable{
 
 	private static final long serialVersionUID = 1L;

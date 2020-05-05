@@ -33,4 +33,39 @@
         where id=#{id}
     </update>
 
+    <!-- 基于菜单id获取授权标识 -->
+    <select id="findPermissions" resultType="string">
+        select  permission from sys_menus
+        <where>
+            <foreach collection="menuIds" separator="or" item="menuId">
+                id=#{menuId}
+            </foreach>
+        </where>
+    </select>
+
+    <resultMap type="com.dongba.sys.vo.SysUserMenuVo" id="sysUserMenuVo">
+        <id property="id" column="pid" />
+        <result property="name" column="pname" />
+        <result property="url" column="purl" />
+        <collection property="childs" ofType="com.dongba.sys.vo.SysUserMenuVo">
+            <id property="id" column="id" />
+            <result property="name" column="name" />
+            <result property="url" column="url" />
+        </collection>
+    </resultMap>
+
+    <select id="findUserMenus" resultMap="sysUserMenuVo">
+        select p.id pid,p.name pname,p.url purl,c.id,c.name,c.url
+        from sys_menus p join sys_menus c
+        on c.parentId=p.id
+        <where>
+            <foreach collection="array" open="(" close=")"
+                     separator="or" item="menuId">
+                c.id=#{menuId}
+            </foreach>
+            and p.parentId is null
+        </where>
+
+    </select>
+
 </mapper>

@@ -11,7 +11,7 @@ server:
 #spring
 spring:
   datasource:
-    url: jdbc:mysql://127.0.0.1/jtsys?serverTimezone=GMT%2B8&characterEncoding=utf-8
+    url: jdbc:mysql://127.0.0.1:3306/jtsys?serverTimezone=GMT%2B8&characterEncoding=utf-8
     username: root
     password: root
   thymeleaf:
@@ -19,7 +19,7 @@ spring:
     suffix: .html
     cache: false
   aop:
-    proxy-target-class: false
+    proxy-target-class: true
   task:
     execution:
       pool:

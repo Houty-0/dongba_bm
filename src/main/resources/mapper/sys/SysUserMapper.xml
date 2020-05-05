@@ -42,10 +42,6 @@
         limit #{startIndex},#{pageSize}
     </select>
 
-    <select id="findUserByUserName" parameterType="String" resultType="Int">
-        select count(*) from sys_users where username = #{username}
-    </select>
-
     <update id="validById">
         update sys_users set valid=#{valid},modifiedUser=#{modifiedUser},modifiedTime=now()
         where id=#{id}
@@ -66,6 +62,24 @@
     <update id="updateObject" parameterType="com.dongba.sys.entity.SysUser">
         update sys_users
         set username=#{username},mobile=#{mobile},email=#{email},deptId=#{deptId},modifiedTime=now(),modifiedUser=#{modifiedUser}
+        where id=#{id}
+    </update>
+
+    <delete id="deleteObjectById" parameterType="com.dongba.sys.entity.SysUser">
+        delete from sys_users where id=#{id}
+    </delete>
+
+    <select id="checkUserNameIsExist">
+        select count(*) from sys_users where username=#{username}
+    </select>
+
+    <select id="findUserByUserName" parameterType="String" resultType="com.dongba.sys.entity.SysUser">
+        select id,username,password,salt,email,mobile,valid,deptId,createdTime,modifiedTime,createdUser,modifiedUser
+        from sys_users where username=#{username}
+    </select>
+
+    <update id="updatePassword" parameterType="com.dongba.sys.entity.SysUser">
+        update sys_users set password=#{password},salt=#{salt},modifiedTime=now()
         where id=#{id}
     </update>
 </mapper>

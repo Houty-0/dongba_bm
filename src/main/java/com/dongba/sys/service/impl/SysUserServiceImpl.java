@@ -3,23 +3,35 @@ package com.dongba.sys.service.impl;
 import com.dongba.common.annotation.RequiredLog;
 import com.dongba.common.config.PaginationProperties;
 import com.dongba.common.util.Assert;
+import com.dongba.common.util.ShiroUtil;
 import com.dongba.common.vo.PageObject;
 import com.dongba.sys.dao.SysUserDao;
 import com.dongba.sys.dao.SysUserRoleDao;
 import com.dongba.sys.entity.SysUser;
 import com.dongba.sys.service.SysUserService;
 import com.dongba.sys.vo.SysUserDeptVo;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.apache.shiro.crypto.hash.SimpleHash;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Transactional(timeout = 30,
+        readOnly = false,
+        isolation = Isolation.READ_COMMITTED,
+        rollbackFor = Throwable.class,
+        propagation = Propagation.REQUIRED)
 @Service
 public class SysUserServiceImpl implements SysUserService {
 
@@ -32,6 +44,8 @@ public class SysUserServiceImpl implements SysUserService {
     @Autowired
     private PaginationProperties paginationProperties;
 
+    @RequiresPermissions("sys:user:view")
+    @Cacheable(value = "usersCache")
     @Override
     public PageObject<SysUserDeptVo> findPageObjects(String username, Integer pageCurrent) {
         //1.参数校验
@@ -47,6 +61,7 @@ public class SysUserServiceImpl implements SysUserService {
         return new PageObject<>(pageCurrent,pageSize,rowCount,records);
     }
 
+    @RequiresPermissions("sys:user:update")
     @RequiredLog(operation = "禁用启用")
     @Override
     public int validById(Integer id, Integer valid, String modifiedUser) {
@@ -60,6 +75,9 @@ public class SysUserServiceImpl implements SysUserService {
         return rows;
     }
 
+    @RequiresPermissions("sys:user:add")
+    @CacheEvict(value = "usersCache",allEntries = true)
+    @RequiredLog(operation = "新增用户")
     @Override
     public int saveObject(SysUser entity, Integer[] roleIds) {
         //1.参数校验
@@ -68,7 +86,7 @@ public class SysUserServiceImpl implements SysUserService {
         Assert.isEmpty(entity.getPassword(), "密码不能为空");
         Assert.isArgumentValid(roleIds==null||roleIds.length==0, "必须为用户分配权限");
 
-        int row = sysUserDao.findUserByUserName(entity.getUsername());
+        int row = sysUserDao.checkUserNameIsExist(entity.getUsername());
         Assert.isServiceValid(row>0,"用户名已存在");
 
         //2.对密码进行加密
@@ -82,6 +100,7 @@ public class SysUserServiceImpl implements SysUserService {
                 1);//hashIterations 加密次数
         entity.setPassword(sh.toHex());//将密码加密结果转换为16进制并存储到entity对象
         entity.setSalt(salt);
+        entity.setCreatedUser(ShiroUtil.getUsername()).setModifiedUser(ShiroUtil.getUsername());
         //3.保存用户自身信息
         int rows=sysUserDao.insertObject(entity);
         //4.保存用户与角色的关系数据
@@ -90,6 +109,7 @@ public class SysUserServiceImpl implements SysUserService {
         return rows;
     }
 
+    @Cacheable(value = "userCache", key = "#userId")
     @Transactional(readOnly = true)
     @Override
     public Map<String, Object> findObjectById(Integer userId) {
@@ -106,7 +126,9 @@ public class SysUserServiceImpl implements SysUserService {
         return map;
     }
 
-    @CacheEvict(value = "userCache",key = "#entity.id")
+    @RequiresPermissions("sys:user:update")
+    @RequiredLog(operation = "更新用户")
+    @CacheEvict(value = {"usersCache","userCache"}, allEntries = true)
     @Override
     public int updateObject(SysUser entity, Integer[] roleIds) {
         //1.参数校验
@@ -114,6 +136,7 @@ public class SysUserServiceImpl implements SysUserService {
         Assert.isEmpty(entity.getUsername(), "用户名不能为空");
         Assert.isArgumentValid(roleIds==null||roleIds.length==0, "必须为用户分配权限");
 
+        entity.setModifiedUser(ShiroUtil.getUsername());
         //3.更新用户自身信息
         int rows=sysUserDao.updateObject(entity);//commit
         //4.更新用户与角色的关系数据
@@ -124,10 +147,41 @@ public class SysUserServiceImpl implements SysUserService {
     }
 
     @Override
-    public int findUserByUserName(String username) {
-        int row = sysUserDao.findUserByUserName(username);
-        return row;
+    public int checkUserNameIsExist(String username) {
+        int i = sysUserDao.checkUserNameIsExist(username);
+        return i;
     }
 
+    @RequiresPermissions("sys:user:delete")
+    @RequiredLog(operation = "删除用户")
+    @CacheEvict(value = {"usersCache","userCache"}, allEntries = true)
+    @Override
+    public int deleteObjectById(SysUser sysUser) {
+        Assert.isServiceValid(sysUser.getId()==1,"超级管理员账户不能删除");
+        return sysUserDao.deleteObjectById(sysUser);
+    }
+
+    @Override
+    public int updatePassword(String password, String newPassword, String cfgPassword) {
+        // 1.判定新密码与密码确认是否相同
+        Assert.isArgumentValid(StringUtils.isEmpty(newPassword), "新密码不能为空");
+        Assert.isArgumentValid(StringUtils.isEmpty(cfgPassword), "确认密码不能为空");
+        Assert.isArgumentValid(!newPassword.equals(cfgPassword), "两次输入的密码不相等");
+        // 2.判定原密码是否正确
+        Assert.isArgumentValid(StringUtils.isEmpty(password), "原密码不能为空");
+        // 3.获取登陆用户
+        SysUser user = (SysUser) SecurityUtils.getSubject().getPrincipal();
+        SimpleHash sh = new SimpleHash("MD5", password, user.getSalt(), 1);
+        Assert.isArgumentValid(!user.getPassword().equals(sh.toHex()), "原密码不正确");
+        // 4.对新密码进行加密
+        String salt=UUID.randomUUID().toString();
+        sh=new SimpleHash("MD5",newPassword,salt, 1);
+        // 5.将新密码加密以后的结果更新到数据库
+        user.setPassword(sh.toHex());
+        user.setSalt(salt);
+        int rows=sysUserDao.updatePassword(user);
+        Assert.isServiceValid(rows == 0, "修改失败");
+        return rows;
+    }
 
 }

@@ -14,9 +14,13 @@ public interface SysUserService {
 
     public int saveObject(SysUser entity, Integer[]roleIds);
 
-    Map<String,Object> findObjectById(Integer userId);
+    public Map<String,Object> findObjectById(Integer userId);
 
-    int updateObject(SysUser entity,Integer[] roleIds);
+    public int updateObject(SysUser entity,Integer[] roleIds);
 
-    public int findUserByUserName(String username);
+    public int checkUserNameIsExist(String username);
+
+    public int deleteObjectById(SysUser sysUser);
+
+    int updatePassword(String password, String newPassword, String cfgPassword);
 }

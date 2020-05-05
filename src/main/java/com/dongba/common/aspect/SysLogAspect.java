@@ -1,7 +1,8 @@
 package com.dongba.common.aspect;
 
+import cn.hutool.extra.servlet.ServletUtil;
 import com.dongba.common.annotation.RequiredLog;
-import com.dongba.common.util.IPUtils;
+import com.dongba.common.util.ShiroUtil;
 import com.dongba.sys.entity.SysLog;
 import com.dongba.sys.service.SysLogService;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +13,10 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Date;
@@ -20,7 +24,7 @@ import java.util.Date;
 @Slf4j
 @Aspect
 @Component
-public aspect SysLogAspect {
+public class SysLogAspect {
 
     @Pointcut("@annotation(com.dongba.common.annotation.RequiredLog)")
     public void logPointCut(){}
@@ -65,18 +69,24 @@ public aspect SysLogAspect {
         String operation = requiredLog.operation();
 
         // 1.5获取IP
-        String ip = IPUtils.getIpAddr();
+        //String ip = IPUtils.getIpAddr();
+        // 1.5获取客户端的IP地址
+        // 1.5.1)获取到请求对象
+        ServletRequestAttributes sra = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        HttpServletRequest request = sra.getRequest();
+        // 1.5.2)从请求对象中获取IP
+        String ip = ServletUtil.getClientIP(request);
 
         // 2.封装行为日志
         SysLog sysLog = new SysLog();
 
-        sysLog.setUsername("kai");
+        sysLog.setUsername(ShiroUtil.getUsername());
         sysLog.setIp(ip);
         sysLog.setOperation(operation);
-        sysLog.setTime(time);
-        sysLog.setCreatedTime(new Date());
         sysLog.setMethod(targetClsMethod);
         sysLog.setParams(params);
+        sysLog.setTime(time);
+        sysLog.setCreatedTime(new Date());
 
         sysLogService.saveObject(sysLog);
 

@@ -12,7 +12,7 @@ public interface SysUserRoleDao {
 
     int insertObjects(@Param("userId")Integer userId, @Param("roleIds")Integer[] roleIds);
 
-    List<Integer> findRoleIdsByUserId(Integer id);
-
     int deleteObjectsByUserId(Integer userId);
+
+    List<Integer> findRoleIdsByUserId(Integer userId);
 }
